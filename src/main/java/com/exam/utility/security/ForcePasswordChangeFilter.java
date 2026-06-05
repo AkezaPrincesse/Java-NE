@@ -1,7 +1,6 @@
 package com.exam.utility.security;
 
 import com.exam.utility.entity.User;
-import com.exam.utility.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,13 +22,15 @@ import java.util.Map;
  * when the user's forcePasswordChange flag is set to true.
  *
  * Only /auth/change-password is allowed until the user changes their password.
- * This enforces the first-login password change policy for admin-created accounts.
+ *
+ * Implementation note: the principal is read directly from SecurityContextHolder
+ * (populated by JwtAuthenticationFilter earlier in the chain) — no repository
+ * call is needed here, which avoids any JPA initialisation-order issues.
  */
 @Component
 @RequiredArgsConstructor
 public class ForcePasswordChangeFilter extends OncePerRequestFilter {
 
-    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -38,39 +40,32 @@ public class ForcePasswordChangeFilter extends OncePerRequestFilter {
         FilterChain filterChain
     ) throws ServletException, IOException {
 
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String path = request.getServletPath();
-        // Allow the change-password endpoint and auth endpoints to pass through
+
+        // Let the change-password and all /auth/ endpoints through unconditionally
         if (path.equals("/auth/change-password") || path.startsWith("/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String email = authentication.getName();
-        userRepository.findByEmail(email).ifPresent(user -> {
-            if (user.isForcePasswordChange()) {
-                response.setStatus(HttpStatus.FORBIDDEN.value());
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                try {
-                    objectMapper.writeValue(response.getWriter(), Map.of(
-                        "success", false,
-                        "message", "You must change your password before accessing this resource.",
-                        "data", null
-                    ));
-                } catch (IOException ignored) {}
-            }
-        });
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        // Only continue if response hasn't been committed (i.e., no forcePasswordChange block was written)
-        if (!response.isCommitted()) {
-            filterChain.doFilter(request, response);
+        // JwtAuthenticationFilter sets the principal as the User object (User implements UserDetails)
+        if (authentication != null && authentication.getPrincipal() instanceof User user
+                && user.isForcePasswordChange()) {
+
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getWriter(), Map.of(
+                "success", false,
+                "message", "You must change your password before accessing this resource. "
+                         + "Please call POST /api/v1/auth/change-password.",
+                "data", null
+            ));
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     @Override
