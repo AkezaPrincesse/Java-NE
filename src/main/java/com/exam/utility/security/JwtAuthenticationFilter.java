@@ -17,6 +17,18 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * JWT authentication filter — runs once per request before Spring Security's standard filter chain.
+ *
+ * Flow:
+ * 1. Extracts the Bearer token from the Authorization header.
+ * 2. Validates the token signature, expiry, and user status.
+ * 3. If valid, populates SecurityContextHolder so downstream @PreAuthorize checks work correctly.
+ * 4. Public endpoints (/auth/*, Swagger, Actuator) bypass this filter entirely.
+ *
+ * After this filter, ForcePasswordChangeFilter checks whether the authenticated user
+ * must change their password before accessing any other endpoint.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j

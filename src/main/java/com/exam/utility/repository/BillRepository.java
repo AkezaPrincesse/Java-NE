@@ -23,6 +23,7 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     Page<Bill> findByUtilityType(MeterType type, Pageable pageable);
 
     boolean existsByMeterIdAndBillingCycleId(Long meterId, Long billingCycleId);
+    List<Bill> findByMeterIdAndBillingCycleId(Long meterId, Long billingCycleId);
 
     @Query("SELECT b FROM Bill b WHERE b.status NOT IN ('PAID','CANCELLED') AND b.dueDate < :today")
     List<Bill> findOverdueBills(LocalDate today);

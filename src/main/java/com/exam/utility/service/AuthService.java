@@ -15,4 +15,6 @@ public interface AuthService {
     void resetPassword(ResetPasswordRequest request);
     void verifyOtp(VerifyOtpRequest request);
     void resendVerificationEmail(String email);
+    /** Handles the mandatory first-login password change for admin-created accounts. */
+    void changePassword(ChangePasswordRequest request);
 }

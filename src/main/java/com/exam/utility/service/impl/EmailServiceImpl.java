@@ -17,6 +17,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Sends transactional emails using Thymeleaf HTML templates and JavaMailSender.
+ *
+ * All sends are @Async (emailExecutor thread pool) so they never block the request thread.
+ * Every send attempt — success or failure — is logged to the email_logs table for auditing.
+ *
+ * Supported events:
+ * - Email verification (24h token)
+ * - Welcome (sent AFTER verification, not at registration)
+ * - OTP codes (10 min expiry)
+ * - Password reset (30 min token + OTP)
+ * - New user account credentials (admin-created accounts with temporary password)
+ * - Role change notification
+ * - Bill generated / approved / overdue
+ * - Payment confirmation
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -113,6 +129,32 @@ public class EmailServiceImpl implements EmailService {
     public void sendOverdueBillEmail(String to, String name, String billNumber, BigDecimal amount) {
         Map<String, Object> vars = Map.of("name", name, "billNumber", billNumber, "amount", amount);
         sendEmail(to, "Overdue Bill Notice – " + billNumber, "email/overdue-bill", vars);
+    }
+
+    @Override
+    @Async("emailExecutor")
+    public void sendUserCreatedEmail(String to, String fullName, String temporaryPassword, String role, String loginUrl) {
+        Map<String, Object> vars = Map.of(
+            "name", fullName,
+            "email", to,
+            "temporaryPassword", temporaryPassword,
+            "role", role,
+            "loginUrl", loginUrl
+        );
+        sendEmail(to, "Utility Billing System Account Created", "email/user-created", vars);
+    }
+
+    @Override
+    @Async("emailExecutor")
+    public void sendRoleChangedEmail(String to, String fullName, String previousRole, String newRole, String permissionDescription) {
+        Map<String, Object> vars = Map.of(
+            "name", fullName,
+            "previousRole", previousRole,
+            "newRole", newRole,
+            "permissionDescription", permissionDescription,
+            "changeDate", java.time.LocalDate.now().toString()
+        );
+        sendEmail(to, "Your Role Has Been Updated – Utility Billing System", "email/role-changed", vars);
     }
 
     @Override

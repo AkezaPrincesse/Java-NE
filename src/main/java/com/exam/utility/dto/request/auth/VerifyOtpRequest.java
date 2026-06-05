@@ -16,6 +16,9 @@ public class VerifyOtpRequest {
     @Pattern(regexp = "^[0-9]{6}$", message = "OTP must be 6 digits")
     private String otp;
 
-    @NotBlank(message = "Purpose is required")
-    private String purpose;
+    /**
+     * Optional — defaults to PASSWORD_RESET when not provided.
+     * Callers only need to supply this when verifying an OTP for a non-default purpose.
+     */
+    private String purpose = "PASSWORD_RESET";
 }

@@ -1,6 +1,7 @@
 package com.exam.utility.config;
 
 import com.exam.utility.security.CustomAccessDeniedHandler;
+import com.exam.utility.security.ForcePasswordChangeFilter;
 import com.exam.utility.security.JwtAuthenticationEntryPoint;
 import com.exam.utility.security.JwtAuthenticationFilter;
 import com.exam.utility.service.impl.UserDetailsServiceImpl;
@@ -28,6 +29,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Spring Security configuration for the Utility Billing System.
+ *
+ * Security design:
+ * - Stateless JWT-based authentication (no HTTP sessions).
+ * - JwtAuthenticationFilter validates Bearer tokens before Spring's own filters.
+ * - ForcePasswordChangeFilter (after JWT filter) blocks all endpoints except /auth/change-password
+ *   for users whose forcePasswordChange flag is true.
+ * - Public endpoints: /auth/**, /swagger-ui/**, /api-docs/**, /actuator/health, /actuator/info.
+ * - All other endpoints require a valid JWT. Fine-grained access is enforced via @PreAuthorize.
+ * - BCrypt password hashing with cost factor 12.
+ * - CORS configured to accept requests from all origins (adjust for production).
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -35,6 +49,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final ForcePasswordChangeFilter forcePasswordChangeFilter;
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationEntryPoint authEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
@@ -64,7 +79,8 @@ public class SecurityConfig {
                 .accessDeniedHandler(accessDeniedHandler)
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(forcePasswordChangeFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

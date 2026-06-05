@@ -26,4 +26,8 @@ public interface MeterReadingRepository extends JpaRepository<MeterReading, Long
     List<MeterReading> findRecentReadings(Long meterId, Pageable pageable);
 
     List<MeterReading> findByReadingYearAndReadingMonth(Integer year, Integer month);
+
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Bill b " +
+           "WHERE b.meterReading.id = :readingId AND b.status IN ('APPROVED','PAID')")
+    boolean isReadingLinkedToApprovedBill(Long readingId);
 }

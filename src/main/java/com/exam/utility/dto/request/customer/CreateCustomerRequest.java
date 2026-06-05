@@ -19,7 +19,8 @@ public class CreateCustomerRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^(\\+250|0)[7][0-9]{8}$", message = "Phone number must be a valid Rwandan number")
+    @Pattern(regexp = "^(078|079|072|073)\\d{7}$",
+             message = "Phone number must start with 078, 079, 072, or 073 and be exactly 10 digits")
     private String phoneNumber;
 
     @NotBlank(message = "Address is required")

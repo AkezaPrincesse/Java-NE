@@ -1,6 +1,7 @@
 package com.exam.utility.controller;
 
 import com.exam.utility.dto.request.auth.*;
+import com.exam.utility.dto.request.auth.ChangePasswordRequest;
 import com.exam.utility.dto.response.ApiResponse;
 import com.exam.utility.dto.response.auth.AuthResponse;
 import com.exam.utility.dto.response.auth.TokenRefreshResponse;
@@ -89,5 +90,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         authService.verifyOtp(request);
         return ResponseEntity.ok(ApiResponse.success("OTP verified successfully"));
+    }
+
+    /**
+     * Mandatory first-login password change endpoint.
+     * Must be called when the login response contains forcePasswordChange = true.
+     * Accessible even while forcePasswordChange is active; all other endpoints are blocked until this is done.
+     */
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password (required on first login for admin-created accounts)")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully. Please log in again."));
     }
 }

@@ -50,6 +50,14 @@ public class User extends BaseEntity implements UserDetails {
 
     private LocalDateTime lastLogin;
 
+    /**
+     * When true the user must change their password before accessing any protected endpoint.
+     * Set to true on admin-created accounts; cleared to false after the user changes their password.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean forcePasswordChange = false;
+
     @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "user_roles",

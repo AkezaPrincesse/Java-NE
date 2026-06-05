@@ -20,6 +20,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Core billing calculation engine.
+ *
+ * Business rules enforced:
+ * - Billing periods in the future are rejected.
+ * - Bills cannot be generated without a valid meter reading for the period.
+ * - Bills for meters that already have an APPROVED or PAID bill in the cycle are skipped.
+ * - Inactive customers are skipped; their history remains intact.
+ * - Closed billing cycles cannot have new bills added.
+ * - Consumption charges support both flat-rate and tiered tariff structures.
+ * - Service charges and taxes are applied on top of consumption; penalties are applied separately.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -40,6 +52,13 @@ public class BillingEngine {
     public List<Bill> generateMonthlyBills(int year, int month) {
         log.info("Starting bill generation for {}/{}", year, month);
 
+        // Billing periods in the future are not allowed — readings and consumption data do not exist yet
+        YearMonth requestedPeriod = YearMonth.of(year, month);
+        if (requestedPeriod.isAfter(YearMonth.now())) {
+            throw new BusinessException(
+                "Cannot generate bills for a billing period that has not yet started.");
+        }
+
         BillingCycle cycle = getOrCreateBillingCycle(year, month);
         if (cycle.isClosed()) {
             throw new BusinessException("Billing cycle for " + year + "/" + month + " is already closed");
@@ -55,7 +74,18 @@ public class BillingEngine {
                 continue;
             }
             if (billRepository.existsByMeterIdAndBillingCycleId(meter.getId(), cycle.getId())) {
-                log.debug("Bill already exists for meter {} in cycle {}/{}", meter.getMeterNumber(), year, month);
+                // Bills that are APPROVED or PAID must never be regenerated — audit integrity
+                boolean hasApprovedBill = billRepository
+                    .findByMeterIdAndBillingCycleId(meter.getId(), cycle.getId())
+                    .stream()
+                    .anyMatch(b -> b.getStatus() == com.exam.utility.enums.BillStatus.APPROVED
+                               || b.getStatus() == com.exam.utility.enums.BillStatus.PAID);
+                if (hasApprovedBill) {
+                    log.warn("Skipping meter {} — approved/paid bill already exists for {}/{}",
+                        meter.getMeterNumber(), year, month);
+                } else {
+                    log.debug("Bill already exists for meter {} in cycle {}/{}", meter.getMeterNumber(), year, month);
+                }
                 continue;
             }
 
@@ -76,18 +106,14 @@ public class BillingEngine {
         int year = cycle.getBillingYear();
         int month = cycle.getBillingMonth();
 
-        Optional<MeterReading> readingOpt = meterReadingRepository
-            .findByMeterIdAndReadingYearAndReadingMonth(meter.getId(), year, month);
+        // Bills cannot be generated without a valid meter reading for the billing period
+        MeterReading reading = meterReadingRepository
+            .findByMeterIdAndReadingYearAndReadingMonth(meter.getId(), year, month)
+            .orElseThrow(() -> new BusinessException(
+                "No meter reading found for meter " + meter.getMeterNumber() +
+                " in " + year + "/" + month + ". A reading is required before generating a bill."));
 
-        double consumption = 0.0;
-        MeterReading reading = null;
-
-        if (readingOpt.isPresent()) {
-            reading = readingOpt.get();
-            consumption = reading.getConsumption().doubleValue();
-        } else {
-            log.warn("No reading found for meter {} in {}/{}. Using zero consumption.", meter.getMeterNumber(), year, month);
-        }
+        double consumption = reading.getConsumption().doubleValue();
 
         Tariff tariff = meter.getTariff();
         if (tariff == null) {

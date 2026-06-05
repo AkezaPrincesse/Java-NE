@@ -19,6 +19,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Manages customer account creation and lifecycle for the utility billing system.
+ *
+ * Business rules enforced:
+ * - National ID must be exactly 16 digits and unique system-wide.
+ * - Email (when provided) must be unique.
+ * - Phone number must follow the Rwandan format: 078/079/072/073 + 7 digits.
+ * - Duplicate registration is detected via National ID, email, and phone number.
+ * - New customers default to ACTIVE status.
+ * - INACTIVE customers cannot receive new bills or meter readings.
+ * - Customer records are never physically deleted (soft status change only).
+ * - All creation and update events are audit-logged with the acting administrator.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

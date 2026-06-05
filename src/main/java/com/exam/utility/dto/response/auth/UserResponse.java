@@ -14,6 +14,7 @@ public class UserResponse {
     private String email;
     private String phoneNumber;
     private boolean enabled;
+    private boolean forcePasswordChange;
     private Set<String> roles;
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;

@@ -23,6 +23,19 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST API for bill lifecycle management.
+ *
+ * Endpoints:
+ * - POST /generate  — Batch-generate bills for all active meters in a billing period (ADMIN/FINANCE).
+ * - POST /approve   — Approve a PENDING bill (ADMIN/FINANCE). Triggers email notification to customer.
+ * - GET  /          — Paginated list of all bills (ADMIN/FINANCE/MANAGER).
+ * - GET  /{id}      — Retrieve a bill by ID.
+ * - GET  /customer/{customerId} — Bills for a specific customer.
+ * - GET  /my-bills  — Bills for the currently logged-in customer.
+ * - GET  /number/{billNumber}/pdf — Download bill as PDF.
+ * - PATCH /{id}/cancel — Cancel a bill (ADMIN only; PAID bills cannot be cancelled).
+ */
 @RestController
 @RequestMapping("/bills")
 @RequiredArgsConstructor

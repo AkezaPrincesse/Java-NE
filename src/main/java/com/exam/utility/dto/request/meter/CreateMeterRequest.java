@@ -17,6 +17,7 @@ public class CreateMeterRequest {
     private MeterType meterType;
 
     @NotNull(message = "Installation date is required")
+    @PastOrPresent(message = "Installation date cannot be in the future")
     private LocalDate installationDate;
 
     @NotNull(message = "Customer ID is required")

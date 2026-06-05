@@ -1,6 +1,7 @@
 package com.exam.utility.service.impl;
 
 import com.exam.utility.dto.request.auth.*;
+import com.exam.utility.dto.request.auth.ChangePasswordRequest;
 import com.exam.utility.dto.response.auth.AuthResponse;
 import com.exam.utility.dto.response.auth.TokenRefreshResponse;
 import com.exam.utility.dto.response.auth.UserResponse;
@@ -29,6 +30,18 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Handles the full authentication lifecycle.
+ *
+ * Key business rules:
+ * - Self-registered users are disabled until they verify their email.
+ * - Welcome email is sent ONLY after successful email verification, not at registration.
+ * - Failed login attempts are tracked; accounts lock after 5 failures for 30 minutes.
+ * - Password reset requires both a token (30 min expiry) and a 6-digit OTP (10 min expiry).
+ * - Admin-created users have forcePasswordChange = true; they must call /auth/change-password
+ *   before accessing any other protected endpoint.
+ * - All refresh tokens are revoked on logout and on password change.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -80,8 +93,8 @@ public class AuthServiceImpl implements AuthService {
             .expiryDate(LocalDateTime.now().plusHours(24))
             .build());
 
+        // Welcome email is deferred until the user successfully verifies their email address
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), verificationToken);
-        emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
 
         auditService.log(AuditAction.CREATE, "User", user.getId().toString(),
             "New user registered: " + user.getEmail());
@@ -195,6 +208,9 @@ public class AuthServiceImpl implements AuthService {
 
         verificationToken.setUsed(true);
         verificationTokenRepository.save(verificationToken);
+
+        // Send welcome email only after successful verification, per security policy
+        emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
 
         auditService.log(AuditAction.EMAIL_VERIFIED, "User", user.getId().toString(),
             "Email verified: " + user.getEmail());
@@ -310,6 +326,31 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
     }
 
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException("Passwords do not match");
+        }
+
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BusinessException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setForcePasswordChange(false);
+        userRepository.save(user);
+
+        refreshTokenRepository.revokeAllByUserId(user.getId());
+        auditService.log(AuditAction.PASSWORD_CHANGE, "User", user.getId().toString(),
+            "Password changed successfully");
+        log.info("Password changed for user: {}", email);
+    }
+
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
         Set<String> roles = user.getRoles().stream()
             .map(Role::getName).collect(Collectors.toSet());
@@ -324,6 +365,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .enabled(user.isEnabled())
+                .forcePasswordChange(user.isForcePasswordChange())
                 .roles(roles)
                 .lastLogin(user.getLastLogin())
                 .createdAt(user.getCreatedAt())

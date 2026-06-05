@@ -31,6 +31,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Orchestrates the bill lifecycle: generation, approval, customer lookups, and PDF export.
+ *
+ * Business rules enforced here:
+ * - Only PENDING bills can be approved.
+ * - Only the authenticated user's email is used to resolve "my bills" (prevents cross-customer access).
+ * - PAID bills cannot be cancelled.
+ * - Bills with any payments cannot be cancelled.
+ * - Audit log entries are written for generation and approval events.
+ * - Customers are notified by email/notification on each state transition.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

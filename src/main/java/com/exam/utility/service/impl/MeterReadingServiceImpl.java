@@ -21,6 +21,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Records and manages meter readings used as the basis for bill calculations.
+ *
+ * Business rules enforced:
+ * - Readings can only be recorded for ACTIVE meters.
+ * - Only one reading per meter per month is allowed.
+ * - Current reading must be greater than previous reading (no backward meters).
+ * - Readings linked to APPROVED or PAID bills cannot be deleted (financial record integrity).
+ * - Reading date cannot be in the future (validated at DTO level and enforced here).
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -96,6 +106,14 @@ public class MeterReadingServiceImpl implements MeterReadingService {
     public void delete(Long id) {
         MeterReading reading = meterReadingRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("MeterReading", "id", id));
+
+        // Meter readings cannot be modified or deleted after a bill has been approved for them
+        if (meterReadingRepository.isReadingLinkedToApprovedBill(id)) {
+            throw new BusinessException(
+                "Cannot delete a meter reading that has an approved or paid bill. " +
+                "Reading integrity must be preserved for financial records.");
+        }
+
         meterReadingRepository.delete(reading);
         auditService.log(AuditAction.DELETE, "MeterReading", id.toString(), "Reading deleted");
     }
