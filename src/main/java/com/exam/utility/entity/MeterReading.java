@@ -3,6 +3,7 @@ package com.exam.utility.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -16,13 +17,13 @@ public class MeterReading extends BaseEntity {
     private Meter meter;
 
     @Column(nullable = false)
-    private Double previousReading;
+    private BigDecimal previousReading;
 
     @Column(nullable = false)
-    private Double currentReading;
+    private BigDecimal currentReading;
 
     @Column(nullable = false)
-    private Double consumption;
+    private BigDecimal consumption;
 
     @Column(nullable = false)
     private LocalDate readingDate;
@@ -42,7 +43,7 @@ public class MeterReading extends BaseEntity {
     @PrePersist
     @PreUpdate
     private void calculateConsumption() {
-        this.consumption = this.currentReading - this.previousReading;
+        this.consumption = this.currentReading.subtract(this.previousReading);
         if (this.readingDate != null) {
             this.readingYear = this.readingDate.getYear();
             this.readingMonth = this.readingDate.getMonthValue();

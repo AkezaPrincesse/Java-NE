@@ -38,10 +38,11 @@ spring:
     out-of-order: false
 
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:noreply@wasac-reg.rw}
-    password: ${MAIL_PASSWORD:changeme}
+    host: smtp.gmail.com
+    port: 587
+    username: princesseakeza@gmail.com
+    password: twbd dobd flde bzhn
+
     properties:
       mail:
         smtp:

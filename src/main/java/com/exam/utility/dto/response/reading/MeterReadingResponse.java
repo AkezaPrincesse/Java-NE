@@ -3,6 +3,7 @@ package com.exam.utility.dto.response.reading;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,9 +15,9 @@ public class MeterReadingResponse {
     private String meterNumber;
     private String meterType;
     private String customerName;
-    private Double previousReading;
-    private Double currentReading;
-    private Double consumption;
+    private BigDecimal previousReading;
+    private BigDecimal currentReading;
+    private BigDecimal consumption;
     private LocalDate readingDate;
     private Integer readingYear;
     private Integer readingMonth;

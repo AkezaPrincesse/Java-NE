@@ -84,17 +84,17 @@ public class BillingEngine {
 
         if (readingOpt.isPresent()) {
             reading = readingOpt.get();
-            consumption = reading.getConsumption();
+            consumption = reading.getConsumption().doubleValue();
         } else {
             log.warn("No reading found for meter {} in {}/{}. Using zero consumption.", meter.getMeterNumber(), year, month);
         }
 
         Tariff tariff = meter.getTariff();
         if (tariff == null) {
-            tariff = tariffRepository
+            List<Tariff> matchingTariffs = tariffRepository
                 .findByUtilityTypeAndActiveTrueAndEffectiveDateLessThanEqualOrderByEffectiveDateDesc(
-                    meter.getMeterType(), LocalDate.now())
-                .orElse(null);
+                    meter.getMeterType(), LocalDate.now());
+            tariff = matchingTariffs.isEmpty() ? null : matchingTariffs.get(0);
         }
 
         BigDecimal consumptionAmount = calculateConsumptionCharge(tariff, consumption, meter.getMeterType(), LocalDate.now());

@@ -5,6 +5,7 @@ import com.exam.utility.enums.MeterType;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -17,7 +18,7 @@ public class MeterResponse {
     private MeterStatus status;
     private LocalDate installationDate;
     private String location;
-    private Double initialReading;
+    private BigDecimal initialReading;
     private Long customerId;
     private String customerName;
     private Long tariffId;

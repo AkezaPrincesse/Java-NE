@@ -219,7 +219,7 @@ public class BillingServiceImpl implements BillingService {
             .utilityType(b.getUtilityType())
             .billingYear(b.getBillingCycle().getBillingYear())
             .billingMonth(b.getBillingCycle().getBillingMonth())
-            .consumption(b.getMeterReading() != null ? b.getMeterReading().getConsumption() : 0.0)
+            .consumption(b.getMeterReading() != null ? b.getMeterReading().getConsumption().doubleValue() : 0.0)
             .consumptionAmount(b.getConsumptionAmount())
             .serviceChargeAmount(b.getServiceChargeAmount())
             .taxAmount(b.getTaxAmount())

@@ -1,6 +1,7 @@
 package com.exam.utility.service.impl;
 
 import com.exam.utility.dto.request.reading.CreateMeterReadingRequest;
+import java.math.BigDecimal;
 import com.exam.utility.dto.response.PagedResponse;
 import com.exam.utility.dto.response.reading.MeterReadingResponse;
 import com.exam.utility.entity.Meter;
@@ -54,9 +55,9 @@ public class MeterReadingServiceImpl implements MeterReadingService {
 
         MeterReading reading = MeterReading.builder()
             .meter(meter)
-            .previousReading(request.getPreviousReading())
-            .currentReading(request.getCurrentReading())
-            .consumption(request.getCurrentReading() - request.getPreviousReading())
+            .previousReading(BigDecimal.valueOf(request.getPreviousReading()))
+            .currentReading(BigDecimal.valueOf(request.getCurrentReading()))
+            .consumption(BigDecimal.valueOf(request.getCurrentReading()).subtract(BigDecimal.valueOf(request.getPreviousReading())))
             .readingDate(request.getReadingDate())
             .readingYear(year)
             .readingMonth(month)

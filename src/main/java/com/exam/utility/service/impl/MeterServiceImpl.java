@@ -1,5 +1,6 @@
 package com.exam.utility.service.impl;
 
+import java.math.BigDecimal;
 import com.exam.utility.dto.request.meter.CreateMeterRequest;
 import com.exam.utility.dto.request.meter.UpdateMeterRequest;
 import com.exam.utility.dto.response.PagedResponse;
@@ -65,7 +66,7 @@ public class MeterServiceImpl implements MeterService {
             .customer(customer)
             .tariff(tariff)
             .location(request.getLocation())
-            .initialReading(request.getInitialReading() != null ? request.getInitialReading() : 0.0)
+            .initialReading(request.getInitialReading() != null ? BigDecimal.valueOf(request.getInitialReading()) : BigDecimal.ZERO)
             .build();
 
         meter = meterRepository.save(meter);

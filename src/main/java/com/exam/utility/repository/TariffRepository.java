@@ -9,12 +9,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface TariffRepository extends JpaRepository<Tariff, Long> {
     List<Tariff> findByUtilityTypeAndActiveTrue(MeterType utilityType);
-    Optional<Tariff> findByUtilityTypeAndActiveTrueAndEffectiveDateLessThanEqualOrderByEffectiveDateDesc(
+    List<Tariff> findByUtilityTypeAndActiveTrueAndEffectiveDateLessThanEqualOrderByEffectiveDateDesc(
         MeterType utilityType, LocalDate date);
     Page<Tariff> findByUtilityType(MeterType utilityType, Pageable pageable);
     Page<Tariff> findByActive(boolean active, Pageable pageable);

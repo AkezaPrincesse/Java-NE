@@ -5,6 +5,7 @@ import com.exam.utility.enums.MeterType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +33,8 @@ public class Meter extends BaseEntity {
     @Column(length = 255)
     private String location;
 
-    @Column(precision = 10)
-    private Double initialReading;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal initialReading;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
